@@ -10,4 +10,5 @@ dependencies = [
     "matplotlib>=3.10.1",
     "numpy>=2.2.3",
     "pandas>=2.2.3",
+    "yfinance>=0.2.54",
 ]
