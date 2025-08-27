@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import yfinance as yf
 from finance_monitor.utils import company_to_ticker_mapping, month_to_date_conv
+from io import StringIO
 
 class ForecastGrapper:
     def __init__(self, url="https://kursprognose.com/", company="nvidia"):
@@ -22,11 +23,25 @@ class ForecastGrapper:
         self._update_full_url()
     
     def grap_forecast(self):
-        tables = pd.read_html(self.full_url)
+
+        import requests
+        from bs4 import BeautifulSoup
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+        }
+        r = requests.get(self.full_url,headers=headers)
+        r.encoding = r.apparent_encoding or "utf-8"   # oder direkt: r.encoding = "utf-8"
+        html = r.text  # jetzt korrekt dekodiert
+        #html = requests.get(self.full_url,headers=headers).text
+        soup = BeautifulSoup(html, "html.parser")
+        tables = soup.find_all("table")
+        #tables = pd.read_html(self.full_url)
         
         if len(tables) >= 2:
-            self.daily_forecast = tables[0]
-            self.monthly_forecast = tables[1]
+            dfs = [pd.read_html(StringIO(str(table)))[0] for table in tables]
+            self.daily_forecast = dfs[0]
+            self.monthly_forecast = dfs[1]
         else:
             raise ValueError("Not enough tables found on the webpage.")
     
@@ -115,7 +130,7 @@ class ForecastGrapper:
         plt.show()
        
     def _convert_date(self, days_col,month_cols):
-        
+
         current_year = datetime.now().year
         dates = []
         prev_month = None
